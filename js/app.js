@@ -1,3 +1,6 @@
+var Vue = require('vue/dist/vue.min.js');
+Vue.use(require('vue-resource/dist/vue-resource.min.js'));
+
 var data = {
   message: 'Hello Vue.js!',
   posts: []
@@ -5,7 +8,7 @@ var data = {
 
 
 Vue.component('post-component', {
-  props: ['title', 'id', 'time', 'comments', 'score', 'posterId'],
+  props: ['post'],
   template: '#post-template',
   methods: {
     changeScore: function(score) {
@@ -19,9 +22,9 @@ new Vue({
   data: data
 });
 
+var currentId = 1;
 
-
-function Post(title, id, time, comments, score, posterId) {
+function Post(title, id, time, comments, score, posterId, flag) {
   var obj = {};
   if (!title) {
     this.title = "Hello World!!!";
@@ -31,7 +34,7 @@ function Post(title, id, time, comments, score, posterId) {
   if (!id) {
     this.id = Math.random();
   } else {
-    this.id = id;
+    this.id = currentId++;
   }
   if (!time) {
     this.time = Date.now();
@@ -47,6 +50,11 @@ function Post(title, id, time, comments, score, posterId) {
     this.score = 1;
   } else {
     this.score = score;
+  }
+  if (!flag) {
+    this.flag = false;
+  } else {
+    this.flag = flag;
   }
   if (!posterId) {
     this.posterId = "ABC";

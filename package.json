@@ -1,0 +1,18 @@
+{
+  "name": "agora-frontend",
+  "version": "0.0.1",
+  "description": "Front end of Agora",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/turbotardigrade/agora-frontend",
+  "keywords": [
+    "Electron",
+    "Agora"
+  ],
+  "author": "Turbo Tardigrade",
+  "devDependencies": {
+    "electron": "^1.4.1"
+  }
+}

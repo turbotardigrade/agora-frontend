@@ -1,37 +1,66 @@
+<!DOCTYPE html>
 <html>
 <head>
+  <title>Photon</title>
+  <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="css/photon.min.css">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-  <link rel="stylesheet" href="app.css">
-  <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
-
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <div id="app">
-    <post-component v-for="post in posts" :title="post.title" :score="post.score" :comments="post.comments" :poster-id="post.posterId" :time="post.time"></post-component>
-  </div>
   <template id="post-template">
     <div class="panel panel-default">
       <table class="table post-table">
         <tbody>
           <tr>
             <td>
-              <div class="clickable glyphicon glyphicon-chevron-up"></div>
-              <div class="score">{{ score }}</div>
-              <div class="clickable glyphicon glyphicon-chevron-down"></div>
+              <div class="clickable glyphicon glyphicon-chevron-up" v-on:click="post.score += 1"></div>
+              <div class="score">{{ post.score }}</div>
+              <div class="clickable glyphicon glyphicon-chevron-down" v-on:click="post.score = post.score === 0 ? 0 : post.score - 1"></div>
             </td>
             <td>
-              <div class="title">{{ title }}</div>
-              <div class="author"><span>by {{ posterId }} on {{ new Date(time).toString() }}</span>
-              <div class="other"><span>{{ comments }} comments</span>
+              <div class="title">{{ post.title }}</div>
+              <div class="author"><span>by {{ post.posterId }} on {{ new Date(post.time).toString() }}</span></div>
+              <div class="other"><span>{{ post.comments }} comments</span>  | <span class="flag-button" v-on:click="post.flag = !post.flag" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </template>
-  <script src="app.js"></script>
+  <div class="window">
+    <div class="window-content">
+      <div class="pane-group">
+        <div class="pane pane-sm sidebar">
+          <nav class="nav-group">
+            <h5 class="nav-group-title">Navigation</h5>
+            <span class="nav-group-item active">
+              <span class="icon icon-home"></span>
+              Home
+            </span>
+            <span class="nav-group-item">
+              <span class="icon icon-light-up"></span>
+              Settings
+            </span>
+          </nav>
+        </div>
+        <div class="pane">
+          <div id="app">
+            <div id="home">
+              <post-component v-for="post in posts" v-bind:post="post"></post-component>
+            </div>
+            <div id="post-details">
+            </div>
+            <div id="settings">
+              <!-- Settings -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+  <script src="js/app.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 </body>
