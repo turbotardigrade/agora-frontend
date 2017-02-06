@@ -1,11 +1,43 @@
-var Vue = require('vue/dist/vue.min.js');
-Vue.use(require('vue-resource/dist/vue-resource.min.js'));
+var Vue = require('vue/dist/vue.js');
+var VueRouter = require('vue-router/dist/vue-router.min.js');
+Vue.use(VueRouter);
 
 var data = {
-  message: 'Hello Vue.js!',
   posts: []
 };
 
+function returnData() {
+  return data;
+}
+
+var Home = Vue.extend({
+  template: '#home',
+  data: function returnData() {
+    var dataObj = {
+      posts: []
+    };
+
+    // code to add fake posts begins
+    var i = 0;
+    function createPost() {
+      ++i;
+      dataObj.posts.push(new Post('Hello World', 1, Date.now(), i * 10, i, "ABC"));
+      if (i < 10) {
+        setTimeout(function() {
+          createPost();
+        }, 100);
+      }
+    }
+    createPost();
+    // code to add fake posts ends
+    //
+    return dataObj;
+  }
+});
+
+var Settings = Vue.extend({
+  template: '#settings'
+});
 
 Vue.component('post-component', {
   props: ['post'],
@@ -15,12 +47,37 @@ Vue.component('post-component', {
       this.score = score;
     }
   }
-})
+});
 
-new Vue({
+/*new Vue({
   el: '#app',
   data: data
+});*/
+
+var router = new VueRouter({
+  mode: 'hash',
+  base: '/',
+  routes: [
+    {
+      path: '/home',
+      component: Home
+    },
+    {
+      path: '/settings',
+      component: Settings
+    },
+    {
+      path: '*',
+      redirect: '/home'
+    }
+  ],
+  linkActiveClass: "active"
 });
+
+const app = new Vue({
+  router,
+  data: data
+}).$mount('#app');
 
 var currentId = 1;
 
@@ -62,14 +119,3 @@ function Post(title, id, time, comments, score, posterId, flag) {
     this.posterId = posterId;
   }
 }
-var i = 0;
-function createPost() {
-  ++i;
-  data.posts.push(new Post('Hello World', 1, Date.now(), i * 10, i, "ABC"));
-  if (i < 10) {
-    setTimeout(function() {
-      createPost();
-    }, 100);
-  }
-}
-createPost();
