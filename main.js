@@ -1,11 +1,31 @@
-const electron = require('electron')
-// Module to control application life.
-const app = electron.app
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
+const electron = require('electron');
 
-const path = require('path')
-const url = require('url')
+// Module to control application life.
+const app = electron.app;
+
+// Module to create native browser window.
+const BrowserWindow = electron.BrowserWindow;
+const path = require('path');
+const url = require('url');
+
+// Module to interface with the Agora child process
+const agora = require('./agora-backend/agora.js');
+
+// example request (yes I know it is bad taste to write test cases in actual production code)
+agora.request('abc', { a: 1, b: 2 }, (res) => {
+  if (res.error) {
+    console.log('ABC ERROR: ', res.error);
+  } else {
+    console.log('ABC RES: ', res.res)
+  }
+});
+agora.request('postContent', { author: 'hautonjt' }, (res) => {
+  if (res.error) {
+    console.log('POSTCONTENT ERROR: ', res.error);
+  } else {
+    console.log('POSTCONTENT RES: ', res.res)
+  }
+});
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.

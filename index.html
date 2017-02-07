@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Photon</title>
+  <title>Agora</title>
   <link rel="stylesheet" href="css/photon.min.css">
   <link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css">
   <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
@@ -46,25 +46,27 @@
         <div class="pane pane-sm sidebar">
           <nav class="nav-group">
             <h5 class="nav-group-title">Navigation</h5>
-            <router-link class="nav-group-item" to="/home">
+            <router-link class="nav-group-item" to="/" tag="span" exact>
               <span class="icon icon-home"></span>
               Home
             </router-link>
-            <router-link class="nav-group-item" to="/settings">
+            <router-link class="nav-group-item" to="/settings" tag="span">
               <span class="icon icon-light-up"></span>
               Settings
             </router-link>
           </nav>
         </div>
         <div class="pane main-window-pane">
-          <router-view class="view"></router-view>
+          <keep-alive>
+            <router-view keep-alive class="view"></router-view>
+          </keep-alive>
         </div>
       </div>
     </div>
   </div>
-  <script src="js/app.js"></script>
   <script>
       window.jQuery = window.$ = require('jquery');
   </script>
   <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="js/app.js"></script>
 </body>
