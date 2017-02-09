@@ -13,7 +13,7 @@ git clone --recursive https://github.com/turbotardigrade/agora-frontend
 
 ```
 npm install
-npm build
+npm run build
 ```
 
 ## Run it

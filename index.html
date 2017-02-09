@@ -9,7 +9,20 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <template id="post-template">
+<!-- HOME PAGE TEMPLATES -->
+  <template id="home">
+    <div id="home">
+      <keep-alive>
+        <router-view class="view"></router-view>
+      </keep-alive>
+    </div>
+  </template>
+  <template id="home-list">
+    <div>
+      <post-list-component v-for="post in posts" :post="post"></post-list-component>
+    </div>
+  </template>
+  <template id="post-list-item">
     <div class="panel panel-default">
       <table class="table post-table">
         <tbody>
@@ -22,18 +35,24 @@
             <td>
               <div class="title">{{ post.title }}</div>
               <div class="author"><span>by {{ post.posterId }} on {{ new Date(post.time).toString() }}</span></div>
-              <div class="other"><span>{{ post.comments }} comments</span>  | <span class="flag-button" v-on:click="post.flag = !post.flag" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+              <div class="other"><router-link to="comment-list" tag="span">{{ post.comments }} comments</router-link>  | <span class="flag-button" v-on:click="post.flag = !post.flag" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </template>
-  <template id="home" v-bind:posts="posts">
+  <template id="comment-list" v-bind:posts="posts">
     <div>
-      <post-component v-for="post in posts" v-bind:post="post"></post-component>
+      <comment-list-post></comment-list-post>
     </div>
   </template>
+  <template id="comment-list-post-item">
+    <div class="panel">
+    </div>
+  </template>
+  <!-- END HOME PAGE TEMPLATES -->
+
   <template id="settings">
     <!-- Settings -->
     <div>
@@ -47,7 +66,7 @@
         <div class="pane pane-sm sidebar">
           <nav class="nav-group">
             <h5 class="nav-group-title">Navigation</h5>
-            <router-link class="nav-group-item" to="/" tag="span" exact>
+            <router-link class="nav-group-item" to="/home" tag="span">
               <span class="icon icon-home"></span>
               Home
             </router-link>
