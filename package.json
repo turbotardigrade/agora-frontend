@@ -1,9 +1,10 @@
 {
   "name": "agora-frontend",
   "version": "0.0.1",
-  "description": "Front end of Agora",
+  "description": "Frontend of Agora",
   "main": "main.js",
-  "scripts": {
+    "scripts": {
+    "build": "cd agora && go build",
     "start": "electron ."
   },
   "repository": "https://github.com/turbotardigrade/agora-frontend",

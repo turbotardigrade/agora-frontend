@@ -1,15 +1,22 @@
 # Getting started
 
-## Dependencies
-You need to get the agora go project. Clone from the following repository and follow build instruction:
-https://github.com/turbotardigrade/agora
+## Get The Code
+Note that this project uses submodules, so use `--recursive` when clonging this project.
 
-Then run `go install` inside /agora to install binaries to you system.
+```
+git clone --recursive https://github.com/turbotardigrade/agora-frontend
+```
 
-## Install and run
-After you have installed the dependend package, go back to this project and run the following to start the GUI
+**IMPORTANT!** You must clone this project inside $GOPATH, otherwise the backend will not compile.
+
+## Get and build dependencies
 
 ```
 npm install
+npm run build
+```
+
+## Run it
+```
 npm start
 ```
