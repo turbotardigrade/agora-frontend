@@ -8,7 +8,10 @@ const child_process = require('child_process');
 const stream = require('stream');
 const readline = require('readline');
 
-const agora_process = child_process.spawn('./agora-backend/agora');
+// Spawn child process from agora binary in go path
+// Note that you need to run `go install` to expose agora binaries
+const agora_path = process.env.GOPATH+'/bin/agora';
+const agora_process = child_process.spawn(agora_path);
 
 // readline interface for easy input/output using question and answer
 const rl = readline.createInterface({
@@ -51,7 +54,7 @@ function processNextRequest(chained) {
       // if there are requests remaining
       // keep the current processing chain going
       processNextRequest(true);
-    } else {
+    } else {p
       // else terminate the processing
       processing = false;
     }

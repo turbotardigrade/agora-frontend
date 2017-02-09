@@ -22,16 +22,16 @@ func main() {
 		if err != nil {
 			fmt.Println("{\"error\": \"JSON object not well formed.\"}")
 		} else {
-      switch cmd.Command {
-        case "postContent":
-          postContent(cmd.Arguments)
-        default:
-          fmt.Println("{\"error\": \"No such command.\"}")
-      }
+			switch cmd.Command {
+			case "postContent":
+				postContent(cmd.Arguments)
+			default:
+				fmt.Println("{\"error\": \"No such command.\"}")
+			}
 		}
 	}
 }
 
 func postContent(args map[string]interface{}) {
-  fmt.Println("{\"res\": \"ok\"}")
+	fmt.Println("{\"res\": \"ok\"}")
 }

@@ -76,8 +76,31 @@ var Home = Vue.extend({
   }
 });
 
+// @TODO make this globally accessable or turn agora package into a singleton with init function
+// Module to interface with the Agora child process
+const agora = require('./agora-backend/agora.js');
+
 var Settings = Vue.extend({
-  template: '#settings'
+  template: '#settings',
+  methods: {
+    test: function (event) {
+      // example request (yes I know it is bad taste to write test cases in actual production code)
+      agora.request('abc', { a: 1, b: 2 }, (res) => {
+	if (res.error) {
+	  console.log('ABC ERROR: ', res.error);
+	} else {
+	  console.log('ABC RES: ', res.res)
+	}
+      });
+      agora.request('postContent', { author: 'hautonjt' }, (res) => {
+	if (res.error) {
+	  console.log('POSTCONTENT ERROR: ', res.error);
+	} else {
+	  console.log('POSTCONTENT RES: ', res.res)
+	}
+      });
+    }
+  }
 });
 
 Vue.component('post-component', {

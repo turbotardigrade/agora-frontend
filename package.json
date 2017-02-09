@@ -4,7 +4,7 @@
   "description": "Front end of Agora",
   "main": "main.js",
   "scripts": {
-    "start": "go build -o agora-backend/agora agora-backend/*.go; electron ."
+    "start": "electron ."
   },
   "repository": "https://github.com/turbotardigrade/agora-frontend",
   "keywords": [
