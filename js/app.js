@@ -51,7 +51,6 @@ const Vue = require('vue/dist/vue.js');
 const VueRouter = require('vue-router/dist/vue-router.min.js');
 Vue.use(VueRouter);
 
-
 // home page
 const Home = Vue.extend({
   template: '#home'
@@ -59,30 +58,28 @@ const Home = Vue.extend({
 
 var postMap = {};
 
+// code to add fake posts begins
+var i = 0;
+function createPost() {
+  ++i;
+  var post = new Post();
+  Vue.set(postMap, post.id, post);
+  if (i < 10) {
+    setTimeout(function() {
+      createPost();
+    }, 100);
+  }
+}
+createPost();
+// code to add fake posts ends
+
 // PostPage shows a list of posts
 const PostPage = Vue.extend({
   template: '#home-list',
   data: function returnData() {
-    var dataObj = {
+    return {
       posts: postMap
     };
-
-    // code to add fake posts begins
-    var i = 0;
-    function createPost() {
-      ++i;
-      var post = new Post();
-      dataObj.posts[post.id] = post;
-      if (i < 10) {
-        setTimeout(function() {
-          createPost();
-        }, 100);
-      }
-    }
-    createPost();
-    // code to add fake posts ends
-
-    return dataObj;
   }
 });
 
@@ -93,7 +90,19 @@ Vue.component('post-list-component', {
 
 // CommmentsPage shows a list of comments
 const CommentPage = Vue.extend({
+  props: ['postid'],
   template: '#comment-list',
+  data: function returnData() {
+    return {
+      posts: postMap
+    };
+  },
+  methods: {
+    getpostid() {
+      console.log('here: ', this.postid);
+      return this.postid;
+    }
+  }
 });
 
 Vue.component('comment-list-post', {
@@ -145,8 +154,10 @@ var router = new VueRouter({
           component: PostPage
         },
         {
-          path: 'comment-list',
-          component: CommentPage
+          name: 'comments',
+          path: 'post-list/:postid/comments',
+          component: CommentPage,
+          props: true
         },
         {
           path: '',

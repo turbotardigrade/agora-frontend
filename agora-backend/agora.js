@@ -68,9 +68,9 @@ module.exports = {
       return;
     }
     requests.push({
-      command: command,
-      arguments: arguments,
-      callback: callback
+      command,
+      arguments,
+      callback
     });
     processNextRequest();
   }

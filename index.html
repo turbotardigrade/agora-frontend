@@ -35,20 +35,36 @@
             <td>
               <div class="title">{{ post.title }}</div>
               <div class="author"><span>by {{ post.posterId }} on {{ new Date(post.time).toString() }}</span></div>
-              <div class="other"><router-link to="comment-list" tag="span">{{ post.comments }} comments</router-link>  | <span class="flag-button" v-on:click="post.flag = !post.flag" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+              <div class="other"><router-link :to="{ name: 'comments', params: { postid: post.id }}"tag="span">{{ post.comments }} comments</router-link>  | <span class="flag-button" v-on:click="post.flag = !post.flag" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </template>
-  <template id="comment-list" v-bind:posts="posts">
+  <template id="comment-list" :posts="posts" :postid="postid">
     <div>
-      <comment-list-post></comment-list-post>
+      <comment-list-post :post="postid != null ? posts[postid] : {}"></comment-list-post>
     </div>
   </template>
   <template id="comment-list-post-item">
-    <div class="panel">
+    <div class="panel panel-default">
+      <table class="table post-table">
+        <tbody>
+          <tr>
+            <td>
+              <div class="clickable glyphicon glyphicon-chevron-up" v-on:click="post.score += 1"></div>
+              <div class="score">{{ post.score }}</div>
+              <div class="clickable glyphicon glyphicon-chevron-down" v-on:click="post.score = post.score === 0 ? 0 : post.score - 1"></div>
+            </td>
+            <td>
+              <div class="title">{{ post.title }}</div>
+              <div class="author"><span>by {{ post.posterId }} on {{ new Date(post.time).toString() }}</span></div>
+              <div class="other"><router-link :to="{ name: 'comments', params: { postid: post.id }}"tag="span">{{ post.comments }} comments</router-link>  | <span class="flag-button" v-on:click="post.flag = !post.flag" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </template>
   <!-- END HOME PAGE TEMPLATES -->
