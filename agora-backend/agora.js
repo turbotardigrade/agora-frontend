@@ -8,7 +8,7 @@ const child_process = require('child_process');
 const stream = require('stream');
 const readline = require('readline');
 
-const agora_process = child_process.spawn('./agora/agora');
+const agora_process = child_process.spawn('./agora/agora', ['--silent']);
 
 // readline interface for easy input/output using question and answer
 const rl = readline.createInterface({
