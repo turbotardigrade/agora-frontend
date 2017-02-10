@@ -15,10 +15,6 @@
   line-height: 30px;
 }
 
-.post-table > tbody > tr > td:first-child > .clickable {
-  cursor: pointer;
-}
-
 .post-table .title {
   font-size: 25px;
   width: 100%;
@@ -35,11 +31,38 @@
   padding: 10px;
 }
 
-.post-table .flag-button, .post-table .comments {
+.post-table .clickable {
   cursor: pointer;
 }
 
 .post-table .flag-button.clicked {
+  color: red;
+}
+
+.comment-table > tbody > tr:active {
+  background-color: unset;
+  color: unset;
+}
+
+.comment-panel {
+  padding: 5px;
+}
+
+.comment-table .content {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 14px;
+}
+
+.comment-table .author, .comment-table .comment-buttons {
+  font-size: 12px;
+}
+
+.comment-table .clickable {
+  cursor: pointer;
+}
+
+.comment-table .flag-button.clicked {
   color: red;
 }
 

@@ -2,22 +2,26 @@
 // must be at the top as it is used by Vue components
 Post.currentId = 1;
 function Post({ title, id, time, score,
-                flag, authorId, commentData, content }) {
+                flag, authorId, childComments, content }) {
   this.title = title;
   this.id = id;
   this.time = time;
   this.score = score;
   this.flag = flag;
   this.authorId = authorId;
-  this.commentData = commentData;
+  this.childComments = childComments;
   this.content = content;
 }
 
 Comment.currentId = 1;
-function Comment({ content, authorId, commentId }) {
+function Comment({ content, authorId, commentId,
+                   time, flag, childComments }) {
   this.content = content;
   this.authorId = authorId;
-  this.commentId = commentId;
+  this.id = commentId;
+  this.time = time;
+  this.flag = flag;
+  this.childComments = childComments;
 }
 
 // Vue definitions
@@ -30,7 +34,8 @@ Vue.use(Vuex)
 
 const store = new Vuex.Store({
   state: {
-    postMap: {}
+    postMap: {},
+    commentMap: {}
   },
   mutations: {
     updatePostMap(state, post) {
@@ -47,12 +52,23 @@ const store = new Vuex.Store({
       state.postMap[postId].flag = !state.postMap[postId].flag;
       // send update to agora
     },
-    addComment(state, comment) {
-      if(state.postMap[postId].commentData) {
-        state.postMap[postId].commentData.push(comment);
-      } else {
-        state.postMap[postId].commentData = [comment];
+    toggleCommentFlag(state, commentId) {
+      state.commentMap[commentId].flag = !state.commentMap[commentId].flag;
+    },
+    addOrUpdateComment(state, { comment, postParentId, commentParentId }) {
+      if (postParentId) {
+        if (!state.postMap[postParentId].childComments) {
+          Vue.set(state.postMap[postParentId], childComments, {});
+        }
+        Vue.set(state.postMap[postParentId].childComments, comment.id, comment);
+      } else if (commentParentId) {
+        if (!state.commentMap[commentParentId].childComments) {
+          Vue.set(state.commentMap[commentParentId], childComments, {});
+        }
+        Vue.set(state.commentMap[commentParentId].childComments,
+          comment.id, comment);
       }
+      Vue.set(state.commentMap, comment.id, comment);
     }
   },
   strict: true
@@ -66,9 +82,6 @@ const Home = Vue.extend({
 // PostPage shows a list of posts
 const PostPage = Vue.extend({
   template: '#home-list',
-  data: function returnData() {
-    return {};
-  },
   computed: {
     posts() {
       var obj = this.$store.state.postMap;
@@ -101,9 +114,6 @@ Vue.component('post-list-component', {
 const CommentPage = Vue.extend({
   props: ['postid'],
   template: '#comment-list',
-  data: function returnData() {
-    return {};
-  },
   computed: {
     posts() {
       return this.$store.state.postMap;
@@ -123,6 +133,17 @@ Vue.component('comment-list-post', {
     },
     toggleFlag() {
       this.$store.commit('toggleFlag', this.post.id);
+    }
+  }
+});
+
+Vue.component('comment-list-comment', {
+  props: ['comment'],
+  template: '#comment-list-comment-item',
+  methods: {
+    toggleCommentFlag() {
+      console.log('Comment id: ', this.comment.id);
+      this.$store.commit('toggleCommentFlag', this.comment.id);
     }
   }
 });
@@ -204,20 +225,29 @@ function createPost() {
     title: "Hello World!!!",
     id: (Post.currentId++),
     time: Date.now(),
-    score: Math.round(Math.random() * 100),
+    score: Math.round(Math.random() * 10),
     flag: false,
     authorId: "ABC",
-    commentData: [],
+    childComments: {},
     content: "HELLO I AM AWESOME!!"
   });
+  store.commit('updatePostMap', post);
   for (var j = 0; j < i; ++j) {
-    post.commentData.push(new Comment({
+    var comment = new Comment({
       content: "Hi I am awesome too!",
       authorId: "hautonjt",
-      commentId: (Comment.currentId++)
-    }));
+      commentId: (Comment.currentId++),
+      time: Date.now(),
+      flag: false,
+      childComments: {}
+    });
+    store.commit('addOrUpdateComment', {
+      comment: comment,
+      postParentId: post.id
+    });
+    createNestedComment(comment, j % 5);
+
   }
-  store.commit('updatePostMap', post);
   if (i < 10) {
     setTimeout(function() {
       createPost();
@@ -226,3 +256,20 @@ function createPost() {
 }
 createPost();
 // code to add fake posts ends
+function createNestedComment(comment, times) {
+  for (var k = 0; k < times; ++k) {
+    var nestedComment = new Comment({
+      content: "Hi I am a nested comment!",
+      authorId: "hautonjt",
+      commentId: (Comment.currentId++),
+      time: Date.now(),
+      flag: false,
+      childComments: {}
+    });
+    store.commit('addOrUpdateComment', {
+      comment: nestedComment,
+      commentParentId: comment.id
+    });
+    createNestedComment(nestedComment, times - 1)
+  }
+}

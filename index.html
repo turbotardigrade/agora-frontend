@@ -37,7 +37,7 @@
             <td>
               <div class="title">{{ post.title }}</div>
               <div class="author"><span>by {{ post.authorId }} on {{ new Date(post.time).toString() }}</span></div>
-              <div class="post-buttons"><router-link class="comments" :to="{ name: 'comments', params: { postid: post.id }}"tag="span">{{ post.commentData ? post.commentData.length : 0 }} comments</router-link>  | <span class="flag-button" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+              <div class="post-buttons"><router-link class="comments clickable" :to="{ name: 'comments', params: { postid: post.id }}"tag="span">{{ post.childComments ? Object.keys(post.childComments).length : 0 }} comments</router-link>  | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
             </td>
           </tr>
         </tbody>
@@ -50,26 +50,47 @@
     </div>
   </template>
   <template id="comment-list-post-item">
-    <div class="panel panel-default">
-      <table class="table post-table">
+    <div>
+      <div class="panel panel-default">
+        <table class="table post-table">
+          <tbody>
+            <tr>
+              <td>
+                <div class="clickable glyphicon glyphicon-chevron-up" v-on:click="increment()"></div>
+                <div class="score">{{ post.score }}</div>
+                <div class="clickable glyphicon glyphicon-chevron-down" v-on:click="decrement()"></div>
+              </td>
+              <td>
+                <div class="title comment-style">{{ post.title }}</div>
+                <div class="author"><span>by {{ post.authorId }} on {{ new Date(post.time).toString() }}</span></div>
+                <div class="content panel panel-default">
+                  {{ post.content }}
+                </div>
+                <div class="post-buttons">{{ post.childComments ? Object.keys(post.childComments).length : 0 }} comments | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <comment-list-comment v-for="comment in post.childComments" :comment="comment">
+    </div>
+  </template>
+  <template id="comment-list-comment-item">
+    <div class="comment-panel panel panel-default">
+      <table class="table comment-table">
         <tbody>
           <tr>
             <td>
-              <div class="clickable glyphicon glyphicon-chevron-up" v-on:click="increment()"></div>
-              <div class="score">{{ post.score }}</div>
-              <div class="clickable glyphicon glyphicon-chevron-down" v-on:click="decrement()"></div>
-            </td>
-            <td>
-              <div class="title comment-style">{{ post.title }}</div>
-              <div class="author"><span>by {{ post.authorId }} on {{ new Date(post.time).toString() }}</span></div>
-              <div class="content panel panel-default">
-                {{ post.content }}
+              <div class="author"><span>{{ comment.authorId }} on {{ new Date(comment.time).toString() }}</span></div>
+              <div class="content">
+                {{ comment.content }}
               </div>
-              <div class="post-buttons">{{ post.commentData ? post.commentData.length : 0 }} comments | <span class="flag-button" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+              <div class="comment-buttons"><span class="flag-button clickable" v-on:click="toggleCommentFlag()" v-bind:class="{ clicked: comment.flag }">{{ comment.flag ? "Flagged" : "Flag" }}</span> | <span>Comment ID: {{ comment.id }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
+      <comment-list-comment v-for="childComment in comment.childComments" :comment="childComment">
     </div>
   </template>
   <!-- END HOME PAGE TEMPLATES -->
