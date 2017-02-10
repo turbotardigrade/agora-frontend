@@ -1,91 +1,100 @@
-// definition of a Post object
+// definition of a Post object and Comment object
 // must be at the top as it is used by Vue components
 Post.currentId = 1;
-function Post(title, id, time, comments, score, posterId, flag, commentData) {
-  if (!title) {
-    this.title = "Hello World!!!";
-  } else {
-    this.title = title;
-  }
-  if (!id) {
-    this.id = (Post.currentId++); // incrementing ID for fake posts
-  } else {
-    this.id = id;
-  }
-  if (!time) {
-    this.time = Date.now();
-  } else {
-    this.time = time;
-  }
-  if (!comments) {
-    this.comments = 10;
-  } else {
-    this.comments = comments;
-  }
-  if (!score) {
-    this.score = 1;
-  } else {
-    this.score = score;
-  }
-  if (!flag) {
-    this.flag = false;
-  } else {
-    this.flag = flag;
-  }
-  if (!posterId) {
-    this.posterId = "ABC";
-  } else {
-    this.posterId = posterId;
-  }
-  if (!commentData) {
-    this.commentData = getCommentData(this.id);
-  } else {
-    this.commentData = commentData;
-  }
+function Post({ title, id, time, score,
+                flag, authorId, commentData, content }) {
+  this.title = title;
+  this.id = id;
+  this.time = time;
+  this.score = score;
+  this.flag = flag;
+  this.authorId = authorId;
+  this.commentData = commentData;
+  this.content = content;
 }
 
-var postMap = {}
+Comment.currentId = 1;
+function Comment({ content, authorId, commentId }) {
+  this.content = content;
+  this.authorId = authorId;
+  this.commentId = commentId;
+}
 
 // Vue definitions
 const Vue = require('vue/dist/vue.js');
-const VueRouter = require('vue-router/dist/vue-router.min.js');
+const VueRouter = require('vue-router/dist/vue-router.js');
+const Vuex = require('vuex/dist/vuex.js');
+
 Vue.use(VueRouter);
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+  state: {
+    postMap: {}
+  },
+  mutations: {
+    updatePostMap(state, post) {
+      Vue.set(state.postMap, post.id, post);
+    },
+    incrementScore(state, postId) {
+      state.postMap[postId].score += 1
+    },
+    decrementScore(state, postId) {
+      state.postMap[postId].score = state.postMap[postId].score === 0 ?
+                                      0 : state.postMap[postId].score - 1
+    },
+    toggleFlag(state, postId) {
+      state.postMap[postId].flag = !state.postMap[postId].flag;
+      // send update to agora
+    },
+    addComment(state, comment) {
+      if(state.postMap[postId].commentData) {
+        state.postMap[postId].commentData.push(comment);
+      } else {
+        state.postMap[postId].commentData = [comment];
+      }
+    }
+  },
+  strict: true
+});
 
 // home page
 const Home = Vue.extend({
   template: '#home'
 });
 
-var postMap = {};
-
-// code to add fake posts begins
-var i = 0;
-function createPost() {
-  ++i;
-  var post = new Post();
-  Vue.set(postMap, post.id, post);
-  if (i < 10) {
-    setTimeout(function() {
-      createPost();
-    }, 100);
-  }
-}
-createPost();
-// code to add fake posts ends
-
 // PostPage shows a list of posts
 const PostPage = Vue.extend({
   template: '#home-list',
   data: function returnData() {
-    return {
-      posts: postMap
-    };
+    return {};
+  },
+  computed: {
+    posts() {
+      var obj = this.$store.state.postMap;
+      return Object.keys(obj).map(function(key) {
+        return obj[key];
+      }).sort((a, b) => {
+        return b.score - a.score;
+      });
+    }
   }
 });
 
 Vue.component('post-list-component', {
   props: ['post'],
-  template: '#post-list-item'
+  template: '#post-list-item',
+  methods: {
+    increment() {
+      this.$store.commit('incrementScore', this.post.id);
+    },
+    decrement() {
+      this.$store.commit('decrementScore', this.post.id);
+    },
+    toggleFlag() {
+      this.$store.commit('toggleFlag', this.post.id);
+    }
+  }
 });
 
 // CommmentsPage shows a list of comments
@@ -93,21 +102,29 @@ const CommentPage = Vue.extend({
   props: ['postid'],
   template: '#comment-list',
   data: function returnData() {
-    return {
-      posts: postMap
-    };
+    return {};
   },
-  methods: {
-    getpostid() {
-      console.log('here: ', this.postid);
-      return this.postid;
+  computed: {
+    posts() {
+      return this.$store.state.postMap;
     }
   }
 });
 
 Vue.component('comment-list-post', {
   props: ['post'],
-  template: '#comment-list-post-item'
+  template: '#comment-list-post-item',
+  methods: {
+    increment() {
+      this.$store.commit('incrementScore', this.post.id);
+    },
+    decrement() {
+      this.$store.commit('decrementScore', this.post.id);
+    },
+    toggleFlag() {
+      this.$store.commit('toggleFlag', this.post.id);
+    }
+  }
 });
 
 // @TODO make this globally accessable or turn agora package into a singleton with init function
@@ -136,10 +153,6 @@ var Settings = Vue.extend({
     }
   }
 });
-/*new Vue({
-  el: '#app',
-  data: data
-});*/
 
 var router = new VueRouter({
   mode: 'history',
@@ -178,9 +191,38 @@ var router = new VueRouter({
 });
 
 const app = new Vue({
-  router
+  router,
+  store
 }).$mount('#app');
 
-function getCommentData(postId) {
-  return [];
+
+// code to add fake posts begins
+var i = 0;
+function createPost() {
+  ++i;
+  var post = new Post({
+    title: "Hello World!!!",
+    id: (Post.currentId++),
+    time: Date.now(),
+    score: Math.round(Math.random() * 100),
+    flag: false,
+    authorId: "ABC",
+    commentData: [],
+    content: "HELLO I AM AWESOME!!"
+  });
+  for (var j = 0; j < i; ++j) {
+    post.commentData.push(new Comment({
+      content: "Hi I am awesome too!",
+      authorId: "hautonjt",
+      commentId: (Comment.currentId++)
+    }));
+  }
+  store.commit('updatePostMap', post);
+  if (i < 10) {
+    setTimeout(function() {
+      createPost();
+    }, 100);
+  }
 }
+createPost();
+// code to add fake posts ends
