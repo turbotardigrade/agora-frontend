@@ -270,6 +270,6 @@ function createNestedComment(comment, times) {
       comment: nestedComment,
       commentParentId: comment.id
     });
-    createNestedComment(nestedComment, times - 1)
+    createNestedComment(nestedComment, times - 2)
   }
 }
