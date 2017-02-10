@@ -8,13 +8,47 @@ const child_process = require('child_process');
 const stream = require('stream');
 const readline = require('readline');
 
-const agora_process = child_process.spawn('./agora/agora', ['--silent']);
+var agora_process = child_process.spawn('./agora/agora', ['--silent']);
 
 // readline interface for easy input/output using question and answer
-const rl = readline.createInterface({
+var rl = readline.createInterface({
   input: agora_process.stdout,
   output: agora_process.stdin
 });
+
+// cleanup procedures start
+// nodeEnd is the function called when the node instance receives an exit signal
+// it needs to be re-set every time the agora process refreshes if killed
+function nodeEnd() {
+  // signal all current processing requests that a terminate request has been received
+  isTerminating = true;
+  // if it is processing, ensure all events return before stopping
+  if (processing) {
+    (function wait() {
+      if (processing) {
+        setTimeout(wait, 100);
+      } else {
+        agora_process.kill();
+      }
+    })
+  } else {
+    agora_process.kill();
+  }
+}
+process.on('exit', nodeEnd);
+agora_process.on('exit', agoraCleanup);
+function agoraCleanup() {
+  if (!isTerminating) {
+    agora_process = child_process.spawn('./agora/agora', ['--silent']);
+    rl = readline.createInterface({
+      input: agora_process.stdout,
+      output: agora_process.stdin
+    })
+    agora_process.on('exit', agoraCleanup);
+    process.on('exit', nodeEnd);
+  }
+}
+// cleanup procedures end
 
 const requests = [];
 
@@ -45,21 +79,35 @@ function processNextRequest(chained) {
     command: request.command,
     arguments: request.arguments
   }) + '\n';
-  rl.question(question, (response) => {
-    request.callback(JSON.parse(response));
-    if (requests.length > 0) {
-      // if there are requests remaining
-      // keep the current processing chain going
-      processNextRequest(true);
-    } else {
-      // else terminate the processing
-      processing = false;
-    }
-  })
+  try {
+    rl.question(question, (response) => {
+      var res;
+      try {
+        res = JSON.parse(response)
+      } catch (err) {
+        res = { error: 'An error has occurred with the Agora backend.' }
+        console.log(response);
+      }
+      request.callback(res);
+      if (requests.length > 0) {
+        // if there are requests remaining
+        // keep the current processing chain going
+        processNextRequest(true);
+      } else {
+        // else terminate the processing
+        processing = false;
+      }
+    })
+  } catch (e) {
+    requests.unshift(request);
+    processing = false;
+    // try again if it fails after 200 ms
+    setTimeout(processNextRequest, 200);
+  }
 }
 
 module.exports = {
-  request: function addRequest(command, arguments, callback) {
+  request: function addRequest({ command, arguments }, callback) {
     // do not process any more requests if program is terminating
     if (isTerminating) {
       callback({
@@ -75,21 +123,3 @@ module.exports = {
     processNextRequest();
   }
 }
-
-process.on('exit', function () {
-  // signal all current processing requests that a terminate request has been received
-  isTerminating = true;
-
-  // if it is processing, ensure all events return before stopping
-  if (processing) {
-    (function wait() {
-      if (processing) {
-        setTimeout(wait, 100);
-      } else {
-        agora_process.kill();
-      }
-    })
-  } else {
-    agora_process.kill();
-  }
-});

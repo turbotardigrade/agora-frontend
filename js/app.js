@@ -1,3 +1,6 @@
+const { ipcRenderer } = require('electron');
+
+
 // definition of a Post object and Comment object
 // must be at the top as it is used by Vue components
 Post.currentId = 1;
@@ -35,7 +38,8 @@ Vue.use(Vuex)
 const store = new Vuex.Store({
   state: {
     postMap: {},
-    commentMap: {}
+    commentMap: {},
+    currentHomeTabPage: null,
   },
   mutations: {
     updatePostMap(state, post) {
@@ -69,6 +73,9 @@ const store = new Vuex.Store({
           comment.id, comment);
       }
       Vue.set(state.commentMap, comment.id, comment);
+    },
+    setCurrentHomeTabPage(state, page) {
+      state.currentHomeTabPage = page;
     }
   },
   strict: true
@@ -76,7 +83,16 @@ const store = new Vuex.Store({
 
 // home page
 const Home = Vue.extend({
-  template: '#home'
+  template: '#home',
+  beforeRouteEnter(to, from, next) {
+    console.log("hello: ", to.path);
+    if (!to.path.includes('comments') &&
+        store.state.currentHomeTabPage !== null) {
+      next('/home/post-list/' + store.state.currentHomeTabPage + '/comments');
+    } else {
+      next();
+    }
+  }
 });
 
 // PostPage shows a list of posts
@@ -91,6 +107,10 @@ const PostPage = Vue.extend({
         return b.score - a.score;
       });
     }
+  },
+  beforeRouteEnter(to, from, next) {
+    store.commit('setCurrentHomeTabPage', null);
+    next();
   }
 });
 
@@ -118,6 +138,10 @@ const CommentPage = Vue.extend({
     posts() {
       return this.$store.state.postMap;
     }
+  },
+  beforeRouteEnter(to, from, next) {
+    store.commit('setCurrentHomeTabPage', to.params.postid);
+    next();
   }
 });
 
@@ -148,23 +172,25 @@ Vue.component('comment-list-comment', {
   }
 });
 
-// @TODO make this globally accessable or turn agora package into a singleton with init function
-// Module to interface with the Agora child process
-const agora = require('./agora-backend/agora.js');
-
 var Settings = Vue.extend({
   template: '#settings',
   methods: {
     test: function (event) {
       // example request (yes I know it is bad taste to write test cases in actual production code)
-      agora.request('abc', { a: 1, b: 2 }, (res) => {
+      sendAgoraRequest({
+        command: 'abc',
+        arguments: { a: 1, b: 2 }
+      }, (res) => {
         if (res.error) {
           console.log('ABC ERROR: ', res.error);
         } else {
           console.log('ABC RES: ', res.res)
         }
       });
-      agora.request('postContent', { author: 'hautonjt' }, (res) => {
+      sendAgoraRequest({
+        command: 'postContent',
+        arguments: { author: 'hautonjt' }
+      }, (res) => {
         if (res.error) {
           console.log('POSTCONTENT ERROR: ', res.error);
         } else {
@@ -255,7 +281,6 @@ function createPost() {
   }
 }
 createPost();
-// code to add fake posts ends
 function createNestedComment(comment, times) {
   for (var k = 0; k < times; ++k) {
     var nestedComment = new Comment({
@@ -273,3 +298,22 @@ function createNestedComment(comment, times) {
     createNestedComment(nestedComment, times - 2)
   }
 }
+// code to add fake posts ends
+
+// agora send and reply handling code
+var callbackMap = {};
+function sendAgoraRequest({ command, arguments}, callback) {
+  this.agoraRequestId = ++this.agoraRequestId || 1;
+  callbackMap[this.agoraRequestId] = callback;
+  ipcRenderer.send('agora-request', {
+    id: this.agoraRequestId,
+    req: {
+      command: command,
+      arguments: arguments
+    }
+  });
+}
+
+ipcRenderer.on('agora-reply', function (event, {id, result}) {
+  callbackMap[id](result);
+})

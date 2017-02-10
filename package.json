@@ -1,10 +1,10 @@
 {
   "name": "agora-frontend",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Frontend of Agora",
   "main": "main.js",
   "scripts": {
-    "build": "cd agora && go build",
+    "build": "cd agora && go get && go build",
     "start": "electron ."
   },
   "repository": "https://github.com/turbotardigrade/agora-frontend",
@@ -13,6 +13,7 @@
     "Agora"
   ],
   "author": "Turbo Tardigrade",
+  "license": "MIT",
   "devDependencies": {
     "electron": "^1.4.1"
   },
