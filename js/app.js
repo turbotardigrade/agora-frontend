@@ -1,5 +1,5 @@
 const { ipcRenderer } = require('electron');
-
+const util = require('util');
 
 // definition of a Post object and Comment object
 // must be at the top as it is used by Vue components
@@ -100,7 +100,7 @@ const PostPage = Vue.extend({
   template: '#home-list',
   computed: {
     posts() {
-      var obj = this.$store.state.postMap;
+      let obj = this.$store.state.postMap;
       return Object.keys(obj).map(function(key) {
         return obj[key];
       }).sort((a, b) => {
@@ -172,19 +172,23 @@ Vue.component('comment-list-comment', {
   }
 });
 
-var Settings = Vue.extend({
+const Settings = Vue.extend({
   template: '#settings',
+  data: function() {
+    return { agoraTestLogs: [] };
+  },
   methods: {
-    test: function (event) {
+    test(event) {
+      var logs = this.agoraTestLogs;
       // example request (yes I know it is bad taste to write test cases in actual production code)
       sendAgoraRequest({
         command: 'abc',
         arguments: { a: 1, b: 2 }
       }, (res) => {
         if (res.error) {
-          console.log('ABC ERROR: ', res.error);
+          logs.push(util.format('ABC ERROR: ', res.error));
         } else {
-          console.log('ABC RES: ', res.res)
+          logs.push(util.format('ABC RES: ', res.res));
         }
       });
       sendAgoraRequest({
@@ -192,11 +196,14 @@ var Settings = Vue.extend({
         arguments: { author: 'hautonjt' }
       }, (res) => {
         if (res.error) {
-          console.log('POSTCONTENT ERROR: ', res.error);
+          logs.push(util.format('POSTCONTENT ERROR: ', res.error));
         } else {
-          console.log('POSTCONTENT RES: ', res.res)
+          logs.push(util.format('POSTCONTENT RES: ', res.res))
         }
       });
+    },
+    clear() {
+      this.agoraTestLogs = [];
     }
   }
 });
@@ -244,10 +251,10 @@ const app = new Vue({
 
 
 // code to add fake posts begins
-var i = 0;
+let i = 0;
 function createPost() {
   ++i;
-  var post = new Post({
+  let post = new Post({
     title: "Hello World!!!",
     id: (Post.currentId++),
     time: Date.now(),
@@ -258,8 +265,8 @@ function createPost() {
     content: "HELLO I AM AWESOME!!"
   });
   store.commit('updatePostMap', post);
-  for (var j = 0; j < i; ++j) {
-    var comment = new Comment({
+  for (let j = 0; j < i; ++j) {
+    let comment = new Comment({
       content: "Hi I am awesome too!",
       authorId: "hautonjt",
       commentId: (Comment.currentId++),
@@ -282,8 +289,8 @@ function createPost() {
 }
 createPost();
 function createNestedComment(comment, times) {
-  for (var k = 0; k < times; ++k) {
-    var nestedComment = new Comment({
+  for (let k = 0; k < times; ++k) {
+    let nestedComment = new Comment({
       content: "Hi I am a nested comment!",
       authorId: "hautonjt",
       commentId: (Comment.currentId++),
@@ -301,7 +308,7 @@ function createNestedComment(comment, times) {
 // code to add fake posts ends
 
 // agora send and reply handling code
-var callbackMap = {};
+let callbackMap = {};
 function sendAgoraRequest({ command, arguments}, callback) {
   this.agoraRequestId = ++this.agoraRequestId || 1;
   callbackMap[this.agoraRequestId] = callback;

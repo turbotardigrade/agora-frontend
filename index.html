@@ -102,7 +102,11 @@
         <div class="panel-heading">Test Agora Integration</div>
         <div class="panel-body">
           <button class="btn btn-default" v-on:click="test">Start Test</button>
+          <button class="btn btn-default" v-on:click="clear">Clear Logs</button>
         </div>
+        <ul class="list-group">
+          <li class="list-group-item" v-for="item in agoraTestLogs">{{ item }}</li>
+        </ul>
       </div>
     </div>
   </template>
