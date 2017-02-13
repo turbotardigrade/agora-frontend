@@ -1,31 +1,37 @@
 const { ipcRenderer } = require('electron');
 const util = require('util');
 
-// definition of a Post object and Comment object
-// must be at the top as it is used by Vue components
+class Content {
+  constructor({ Alias, Content, Timestamp, Hash, Key, UserData }) {
+    this.Alias = Alias;
+    this.Content = Content;
+    this.Timestamp = Timestamp;
+    this.Hash = Hash;
+    this.Key = Key;
+    this.ChildComments = {};
+    this.Score = UserData.Score;
+    this.Flag = UserData.Flag;
+  }
+};
+
+class Post extends Content {
+  constructor({ Alias, Content, Timestamp, Hash, Key, UserData, Title }) {
+    super({ Alias, Content, Timestamp, Hash, Key, UserData });
+    this.Title = Title;
+  }
+};
+
 Post.currentId = 1;
-function Post({ title, id, time, score,
-                flag, authorId, childComments, content }) {
-  this.title = title;
-  this.id = id;
-  this.time = time;
-  this.score = score;
-  this.flag = flag;
-  this.authorId = authorId;
-  this.childComments = childComments;
-  this.content = content;
-}
+
+class Comment extends Content {
+  constructor({ Post, Parent, Alias, Content, Timestamp, Hash, Key, UserData }) {
+    super({ Alias, Content, Timestamp, Hash, Key, UserData });
+    this.Post = Post;
+    this.Parent = Parent;
+  }
+};
 
 Comment.currentId = 1;
-function Comment({ content, authorId, commentId,
-                   time, flag, childComments }) {
-  this.content = content;
-  this.authorId = authorId;
-  this.id = commentId;
-  this.time = time;
-  this.flag = flag;
-  this.childComments = childComments;
-}
 
 // Vue definitions
 const Vue = require('vue/dist/vue.js');
@@ -39,43 +45,132 @@ const store = new Vuex.Store({
   state: {
     postMap: {},
     commentMap: {},
+    commentBuffer: [],
     currentHomeTabPage: null,
   },
   mutations: {
     updatePostMap(state, post) {
-      Vue.set(state.postMap, post.id, post);
+      let ChildComments = {};
+      if (state.postMap[post.Hash] != null) {
+        ChildComments = state.postMap[post.Hash].ChildComments;
+      }
+      Vue.set(state.postMap, post.Hash, post);
+      state.postMap[post.Hash].ChildComments = ChildComments;
     },
-    incrementScore(state, postId) {
-      state.postMap[postId].score += 1
+    incrementScore(state, postHash) {
+      state.postMap[postHash].Score += 1
     },
-    decrementScore(state, postId) {
-      state.postMap[postId].score = state.postMap[postId].score === 0 ?
-                                      0 : state.postMap[postId].score - 1
+    decrementScore(state, postHash) {
+      state.postMap[postHash].Score = state.postMap[postHash].Score === 0 ?
+                                      0 : state.postMap[postHash].Score - 1
     },
-    toggleFlag(state, postId) {
-      state.postMap[postId].flag = !state.postMap[postId].flag;
+    toggleFlag(state, postHash) {
+      state.postMap[postHash].Flag = !state.postMap[postHash].Flag;
       // send update to agora
     },
-    toggleCommentFlag(state, commentId) {
-      state.commentMap[commentId].flag = !state.commentMap[commentId].flag;
+    toggleCommentFlag(state, commentHash) {
+      state.commentMap[commentHash].Flag = !state.commentMap[commentHash].Flag;
     },
-    addOrUpdateComment(state, { comment, postParentId, commentParentId }) {
-      if (postParentId) {
-        if (!state.postMap[postParentId].childComments) {
-          Vue.set(state.postMap[postParentId], childComments, {});
-        }
-        Vue.set(state.postMap[postParentId].childComments, comment.id, comment);
-      } else if (commentParentId) {
-        if (!state.commentMap[commentParentId].childComments) {
-          Vue.set(state.commentMap[commentParentId], childComments, {});
-        }
-        Vue.set(state.commentMap[commentParentId].childComments,
-          comment.id, comment);
+    // synchronously add comment to the commentmap and updates parent pointers
+    // if it is a new comment
+    addOrUpdateComment(state, comment) {
+      if ((comment.Parent === comment.Post &&
+            state.postMap[comment.Parent] == null) ||
+          (comment.Parent !== comment.Post &&
+            state.commentMap[comment.Parent] == null)) {
+        // parent is not currently inserted yet, put into buffer
+        state.commentBuffer.push_back(comment);
+        return;
       }
-      Vue.set(state.commentMap, comment.id, comment);
+      // comment already exists, no need to set child pointers of parents
+      if (state.commentMap[comment.Hash] != null) {
+        state.commentMap[comment.Hash].Score = comment.Score;
+        state.commentMap[comment.Hash].Flag = comment.Flag;
+        return;
+      }
+
+      if (comment.Parent === comment.Post) {
+        if (!state.postMap[comment.Parent].ChildComments) {
+          Vue.set(state.postMap[comment.Parent], ChildComments, {});
+        }
+        Vue.set(state.postMap[comment.Parent].ChildComments,
+          comment.Hash, comment);
+      } else {
+        if (!state.commentMap[comment.Parent].ChildComments) {
+          Vue.set(state.commentMap[comment.Parent], ChildComments, {});
+        }
+        Vue.set(state.commentMap[comment.Parent].ChildComments,
+          comment.Hash, comment);
+      }
+      Vue.set(state.commentMap, comment.Hash, comment);
     },
     setCurrentHomeTabPage(state, page) {
       state.currentHomeTabPage = page;
+    }
+  },
+  actions: {
+    // repropagates the post map with data from agora
+    refreshPosts({ commit }) {
+      sendAgoraRequest({ command: "getPosts" }, function(result) {
+        for (let i = 0; i < result.length; ++i) {
+          commit('updatePostMap', result[i]);
+        }
+      });
+    },
+    // repropagates the comment map with data from agora
+    refreshComments({ commit, state }, postHash) {
+      sendAgoraRequest({
+        command: 'getCommentsFromPost',
+        arguments: {
+          hash: postHash
+        }
+      }, function(result) {
+        for (let i = 0; i < result.length; ++i) {
+          commit('addOrUpdateComment', result[i]);
+        }
+      });
+      // account for comments whose order is mixed up
+      // traverse (max buffer length)^2 times, since
+      // each traversal is only guaranteed to have one element
+      // match and be deallocated
+      let bufferLength = state.commentBuffer.length;
+      for(let j = bufferLength * bufferLength; j > 0; --j) {
+        let k = state.commentBuffer.shift();
+        if (!k) {
+          break;
+        }
+        commit('addOrUpdateComment', k);
+      }
+    },
+    addComment({ commit, state }, arguments) {
+      sendAgoraRequest({
+        command: 'postComment',
+        arguments: arguments
+      }, function(result) {
+        sendAgoraRequest({
+          command: 'getComment',
+          arguments: {
+            hash: result.hash
+          }
+        }, function(res) {
+          commit('addOrUpdateComment', res);
+        })
+      });
+    },
+    addPost({ commit, state }, arguments) {
+      sendAgoraRequest({
+        command: 'postPost',
+        arguments: arguments
+      }, function(result) {
+        sendAgoraRequest({
+          command: 'getPost',
+          arguments: {
+            hash: result.hash
+          }
+        }, function(res) {
+          commit('updatePostMap', res);
+        })
+      });
     }
   },
   strict: true
@@ -119,20 +214,20 @@ Vue.component('post-list-component', {
   template: '#post-list-item',
   methods: {
     increment() {
-      this.$store.commit('incrementScore', this.post.id);
+      this.$store.commit('incrementScore', this.post.Hash);
     },
     decrement() {
-      this.$store.commit('decrementScore', this.post.id);
+      this.$store.commit('decrementScore', this.post.Hash);
     },
     toggleFlag() {
-      this.$store.commit('toggleFlag', this.post.id);
+      this.$store.commit('toggleFlag', this.post.Hash);
     }
   }
 });
 
 // CommmentsPage shows a list of comments
 const CommentPage = Vue.extend({
-  props: ['postid'],
+  props: ['postHash'],
   template: '#comment-list',
   computed: {
     posts() {
@@ -140,7 +235,7 @@ const CommentPage = Vue.extend({
     }
   },
   beforeRouteEnter(to, from, next) {
-    store.commit('setCurrentHomeTabPage', to.params.postid);
+    store.commit('setCurrentHomeTabPage', to.params.postHash);
     next();
   }
 });
@@ -150,13 +245,13 @@ Vue.component('comment-list-post', {
   template: '#comment-list-post-item',
   methods: {
     increment() {
-      this.$store.commit('incrementScore', this.post.id);
+      this.$store.commit('incrementScore', this.post.Hash);
     },
     decrement() {
-      this.$store.commit('decrementScore', this.post.id);
+      this.$store.commit('decrementScore', this.post.Hash);
     },
     toggleFlag() {
-      this.$store.commit('toggleFlag', this.post.id);
+      this.$store.commit('toggleFlag', this.post.Hash);
     }
   }
 });
@@ -166,8 +261,7 @@ Vue.component('comment-list-comment', {
   template: '#comment-list-comment-item',
   methods: {
     toggleCommentFlag() {
-      console.log('Comment id: ', this.comment.id);
-      this.$store.commit('toggleCommentFlag', this.comment.id);
+      this.$store.commit('toggleCommentFlag', this.comment.Hash);
     }
   }
 });
@@ -179,7 +273,7 @@ const Settings = Vue.extend({
   },
   methods: {
     test(event) {
-      var logs = this.agoraTestLogs;
+      let logs = this.agoraTestLogs;
       // example request (yes I know it is bad taste to write test cases in actual production code)
       sendAgoraRequest({
         command: 'abc',
@@ -208,7 +302,7 @@ const Settings = Vue.extend({
   }
 });
 
-var router = new VueRouter({
+let router = new VueRouter({
   mode: 'history',
   base: '/',
   routes: [
@@ -222,7 +316,7 @@ var router = new VueRouter({
         },
         {
           name: 'comments',
-          path: 'post-list/:postid/comments',
+          path: 'post-list/:postHash/comments',
           component: CommentPage,
           props: true
         },
@@ -255,29 +349,35 @@ let i = 0;
 function createPost() {
   ++i;
   let post = new Post({
-    title: "Hello World!!!",
-    id: (Post.currentId++),
-    time: Date.now(),
-    score: Math.round(Math.random() * 10),
-    flag: false,
-    authorId: "ABC",
-    childComments: {},
-    content: "HELLO I AM AWESOME!!"
+    Alias: 'hautonjt',
+    Content: "HELLO I AM AWESOME!!",
+    Title: "Hello World!!!",
+    Timestamp: Date.now(),
+    Hash: (Post.currentId++),
+    Key: Math.random(),
+    ChildComments: {},
+    UserData: {
+      Score: 0,
+      Flag: false
+    }
   });
   store.commit('updatePostMap', post);
   for (let j = 0; j < i; ++j) {
     let comment = new Comment({
-      content: "Hi I am awesome too!",
-      authorId: "hautonjt",
-      commentId: (Comment.currentId++),
-      time: Date.now(),
-      flag: false,
-      childComments: {}
+      Alias: "hautonjt",
+      Content: "Hi I am awesome too!",
+      Timestamp: Date.now(),
+      Hash: (Comment.currentId++),
+      Key: Math.random(),
+      Post: post.Hash,
+      Parent: post.Hash,
+      ChildComments: {},
+      UserData: {
+        Score: 0,
+        Flag: false
+      }
     });
-    store.commit('addOrUpdateComment', {
-      comment: comment,
-      postParentId: post.id
-    });
+    store.commit('addOrUpdateComment', comment);
     createNestedComment(comment, j % 5);
 
   }
@@ -291,17 +391,20 @@ createPost();
 function createNestedComment(comment, times) {
   for (let k = 0; k < times; ++k) {
     let nestedComment = new Comment({
-      content: "Hi I am a nested comment!",
-      authorId: "hautonjt",
-      commentId: (Comment.currentId++),
-      time: Date.now(),
-      flag: false,
-      childComments: {}
+      Alias: "hautonjt",
+      Content: "Hi I am awesome too!",
+      Timestamp: Date.now(),
+      Hash: (Comment.currentId++),
+      Key: Math.random(),
+      Post: comment.Post,
+      Parent: comment.Hash,
+      ChildComments: {},
+      UserData: {
+        Score: 0,
+        Flag: false
+      }
     });
-    store.commit('addOrUpdateComment', {
-      comment: nestedComment,
-      commentParentId: comment.id
-    });
+    store.commit('addOrUpdateComment', nestedComment);
     createNestedComment(nestedComment, times - 2)
   }
 }

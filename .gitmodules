@@ -1,3 +1,4 @@
 [submodule "agora"]
 	path = agora
 	url = https://github.com/turbotardigrade/agora
+	branch = master

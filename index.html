@@ -20,7 +20,7 @@
   <template id="home-list">
     <div>
       <transition-group name="list" tag="div">
-        <post-list-component v-for="post in posts" :post="post" :key="post.id"></post-list-component>
+        <post-list-component v-for="post in posts" :post="post" :key="post.Hash"></post-list-component>
       </transition-group>
     </div>
   </template>
@@ -31,22 +31,22 @@
           <tr>
             <td>
               <div class="clickable glyphicon glyphicon-chevron-up" v-on:click="increment()"></div>
-              <div class="score">{{ post.score }}</div>
+              <div class="score">{{ post.Score }}</div>
               <div class="clickable glyphicon glyphicon-chevron-down" v-on:click="decrement()"></div>
             </td>
             <td>
-              <div class="title">{{ post.title }}</div>
-              <div class="author"><span>by {{ post.authorId }} on {{ new Date(post.time).toString() }}</span></div>
-              <div class="post-buttons"><router-link class="comments clickable" :to="{ name: 'comments', params: { postid: post.id }}"tag="span">{{ post.childComments ? Object.keys(post.childComments).length : 0 }} comments</router-link>  | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+              <div class="title">{{ post.Title }}</div>
+              <div class="author"><span>by {{ post.Alias }} on {{ new Date(post.Timestamp).toString() }}</span></div>
+              <div class="post-buttons"><router-link class="comments clickable" :to="{ name: 'comments', params: { postHash: post.Hash }}"tag="span">{{ post.ChildComments ? Object.keys(post.ChildComments).length : 0 }} comments</router-link>  | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.Flag }">{{ post.Flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.Hash }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </template>
-  <template id="comment-list" :posts="posts" :postid="postid">
+  <template id="comment-list" :posts="posts" :postHash="postHash">
     <div>
-      <comment-list-post :post="postid != null ? posts[postid] : {}"></comment-list-post>
+      <comment-list-post :post="postHash != null ? posts[postHash] : {}"></comment-list-post>
     </div>
   </template>
   <template id="comment-list-post-item">
@@ -57,22 +57,22 @@
             <tr>
               <td>
                 <div class="clickable glyphicon glyphicon-chevron-up" v-on:click="increment()"></div>
-                <div class="score">{{ post.score }}</div>
+                <div class="score">{{ post.Score }}</div>
                 <div class="clickable glyphicon glyphicon-chevron-down" v-on:click="decrement()"></div>
               </td>
               <td>
-                <div class="title comment-style">{{ post.title }}</div>
-                <div class="author"><span>by {{ post.authorId }} on {{ new Date(post.time).toString() }}</span></div>
+                <div class="title comment-style">{{ post.Title }}</div>
+                <div class="author"><span>by {{ post.Alias }} on {{ new Date(post.Timestamp).toString() }}</span></div>
                 <div class="content panel panel-default">
-                  {{ post.content }}
+                  {{ post.Content }}
                 </div>
-                <div class="post-buttons">{{ post.childComments ? Object.keys(post.childComments).length : 0 }} comments | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.flag }">{{ post.flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.id }}</span></div>
+                <div class="post-buttons">{{ post.ChildComments ? Object.keys(post.ChildComments).length : 0 }} comments | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.Flag }">{{ post.Flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.Hash }}</span></div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <comment-list-comment v-for="comment in post.childComments" :comment="comment">
+      <comment-list-comment v-for="comment in post.ChildComments" :comment="comment">
     </div>
   </template>
   <template id="comment-list-comment-item">
@@ -81,16 +81,16 @@
         <tbody>
           <tr>
             <td>
-              <div class="author"><span>{{ comment.authorId }} on {{ new Date(comment.time).toString() }}</span></div>
+              <div class="author"><span>{{ comment.Alias }} on {{ new Date(comment.Timestamp).toString() }}</span></div>
               <div class="content">
-                {{ comment.content }}
+                {{ comment.Content }}
               </div>
-              <div class="comment-buttons"><span class="flag-button clickable" v-on:click="toggleCommentFlag()" v-bind:class="{ clicked: comment.flag }">{{ comment.flag ? "Flagged" : "Flag" }}</span> | <span>Comment ID: {{ comment.id }}</span></div>
+              <div class="comment-buttons"><span class="flag-button clickable" v-on:click="toggleCommentFlag()" v-bind:class="{ clicked: comment.Flag }">{{ comment.Flag ? "Flagged" : "Flag" }}</span> | <span>Comment ID: {{ comment.Hash }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
-      <comment-list-comment v-for="childComment in comment.childComments" :comment="childComment">
+      <comment-list-comment v-for="ChildComment in comment.ChildComments" :comment="ChildComment">
     </div>
   </template>
   <!-- END HOME PAGE TEMPLATES -->
