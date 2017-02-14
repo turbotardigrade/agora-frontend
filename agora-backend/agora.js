@@ -107,7 +107,7 @@ function processNextRequest(chained) {
 }
 
 module.exports = {
-  request: function addRequest({ command, arguments }, callback) {
+  request: function addRequest(commandObj, callback) {
     // do not process any more requests if program is terminating
     if (isTerminating) {
       callback({
@@ -116,8 +116,8 @@ module.exports = {
       return;
     }
     requests.push({
-      command,
-      arguments,
+      command: commandObj.command,
+      arguments: commandObj.arguments,
       callback
     });
     processNextRequest();

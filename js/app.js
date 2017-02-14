@@ -1,4 +1,23 @@
 const { ipcRenderer } = require('electron');
+
+// agora send and reply handling code
+let callbackMap = {};
+function sendAgoraRequest({ command, arguments}, callback) {
+  this.agoraRequestId = ++this.agoraRequestId || 1;
+  callbackMap[this.agoraRequestId] = callback;
+  ipcRenderer.send('agora-request', {
+    id: this.agoraRequestId,
+    req: {
+      command: command,
+      arguments: arguments
+    }
+  });
+}
+
+ipcRenderer.on('agora-reply', function (event, {id, result}) {
+  callbackMap[id](result);
+})
+
 const util = require('util');
 
 class Content {
@@ -21,8 +40,6 @@ class Post extends Content {
   }
 };
 
-Post.currentId = 1;
-
 class Comment extends Content {
   constructor({ Post, Parent, Alias, Content, Timestamp, Hash, Key, UserData }) {
     super({ Alias, Content, Timestamp, Hash, Key, UserData });
@@ -31,6 +48,7 @@ class Comment extends Content {
   }
 };
 
+Post.currentId = 1;
 Comment.currentId = 1;
 
 // Vue definitions
@@ -74,14 +92,19 @@ const store = new Vuex.Store({
     // synchronously add comment to the commentmap and updates parent pointers
     // if it is a new comment
     addOrUpdateComment(state, comment) {
+
       if ((comment.Parent === comment.Post &&
             state.postMap[comment.Parent] == null) ||
           (comment.Parent !== comment.Post &&
             state.commentMap[comment.Parent] == null)) {
+        console.log("Current comment map: ", state.commentMap);
+        console.log("Comment actual parent: ", comment.Parent);
+        console.log("Comment parent: ", state.commentMap[comment.Parent])
         // parent is not currently inserted yet, put into buffer
-        state.commentBuffer.push_back(comment);
+        state.commentBuffer.push(comment);
         return;
       }
+      console.log('hello! fom add or update');
       // comment already exists, no need to set child pointers of parents
       if (state.commentMap[comment.Hash] != null) {
         state.commentMap[comment.Hash].Score = comment.Score;
@@ -112,8 +135,11 @@ const store = new Vuex.Store({
     // repropagates the post map with data from agora
     refreshPosts({ commit }) {
       sendAgoraRequest({ command: "getPosts" }, function(result) {
+        if (!result) {
+          return;
+        }
         for (let i = 0; i < result.length; ++i) {
-          commit('updatePostMap', result[i]);
+          commit('updatePostMap', new Post(result[i]));
         }
       });
     },
@@ -125,8 +151,11 @@ const store = new Vuex.Store({
           hash: postHash
         }
       }, function(result) {
+        if (!result) {
+          return;
+        }
         for (let i = 0; i < result.length; ++i) {
-          commit('addOrUpdateComment', result[i]);
+          commit('addOrUpdateComment', new Comment(result[i]));
         }
       });
       // account for comments whose order is mixed up
@@ -143,17 +172,20 @@ const store = new Vuex.Store({
       }
     },
     addComment({ commit, state }, arguments) {
+      console.log('hello!');
       sendAgoraRequest({
         command: 'postComment',
         arguments: arguments
       }, function(result) {
+        console.log('hello 2!: ', result);
         sendAgoraRequest({
           command: 'getComment',
           arguments: {
             hash: result.hash
           }
         }, function(res) {
-          commit('addOrUpdateComment', res);
+          console.log('hello 3!: ', res);
+          commit('addOrUpdateComment', new Comment(res));
         })
       });
     },
@@ -162,13 +194,14 @@ const store = new Vuex.Store({
         command: 'postPost',
         arguments: arguments
       }, function(result) {
+
         sendAgoraRequest({
           command: 'getPost',
           arguments: {
             hash: result.hash
           }
         }, function(res) {
-          commit('updatePostMap', res);
+          commit('updatePostMap', new Post(res));
         })
       });
     }
@@ -180,7 +213,6 @@ const store = new Vuex.Store({
 const Home = Vue.extend({
   template: '#home',
   beforeRouteEnter(to, from, next) {
-    console.log("hello: ", to.path);
     if (!to.path.includes('comments') &&
         store.state.currentHomeTabPage !== null) {
       next('/home/post-list/' + store.state.currentHomeTabPage + '/comments');
@@ -193,17 +225,41 @@ const Home = Vue.extend({
 // PostPage shows a list of posts
 const PostPage = Vue.extend({
   template: '#home-list',
+  data: function() {
+    return {
+      postToSubmit: {
+        title: '',
+        content: ''
+      },
+      addpost: false
+    };
+  },
   computed: {
     posts() {
       let obj = this.$store.state.postMap;
       return Object.keys(obj).map(function(key) {
         return obj[key];
       }).sort((a, b) => {
-        return b.score - a.score;
+        return b.Score - a.Score;
       });
     }
   },
+  methods: {
+    submitPost() {
+      let tempPost = {
+        title: this.postToSubmit.title,
+        content: this.postToSubmit.content
+      };
+      this.$store.dispatch('addPost', tempPost);
+      this.postToSubmit.title = '';
+      this.postToSubmit.content = '';
+    },
+    refreshPosts() {
+      this.$store.dispatch('refreshPosts');
+    }
+  },
   beforeRouteEnter(to, from, next) {
+    store.dispatch('refreshPosts');
     store.commit('setCurrentHomeTabPage', null);
     next();
   }
@@ -236,6 +292,7 @@ const CommentPage = Vue.extend({
   },
   beforeRouteEnter(to, from, next) {
     store.commit('setCurrentHomeTabPage', to.params.postHash);
+    store.dispatch('refreshComments', to.params.postHash);
     next();
   }
 });
@@ -243,6 +300,14 @@ const CommentPage = Vue.extend({
 Vue.component('comment-list-post', {
   props: ['post'],
   template: '#comment-list-post-item',
+  data: function() {
+    return {
+      showReplyBox: false,
+      comment: {
+        content: ''
+      }
+    };
+  },
   methods: {
     increment() {
       this.$store.commit('incrementScore', this.post.Hash);
@@ -252,16 +317,44 @@ Vue.component('comment-list-post', {
     },
     toggleFlag() {
       this.$store.commit('toggleFlag', this.post.Hash);
+    },
+    submitComment() {
+      let tempComment = {
+        content: this.comment.content,
+        post: this.post.Hash,
+        parent: this.post.Hash
+      }
+      this.$store.dispatch('addComment', tempComment);
+      this.comment.content = '';
+      showReplyBox = false;
     }
   }
 });
 
 Vue.component('comment-list-comment', {
-  props: ['comment'],
+  props: ['comment', 'posthash'],
   template: '#comment-list-comment-item',
+  data: function() {
+    return {
+      showReplyBox: false,
+      content: ''
+    }
+  },
   methods: {
     toggleCommentFlag() {
       this.$store.commit('toggleCommentFlag', this.comment.Hash);
+    },
+    submitComment() {
+      let tempComment = {
+        content: this.content,
+        post: this.posthash,
+        parent: this.comment.Hash
+      }
+      console.log("tempComment: ", tempComment)
+
+      this.$store.dispatch('addComment', tempComment);
+      this.content = '';
+      this.showReplyBox = false;
     }
   }
 });
@@ -343,7 +436,7 @@ const app = new Vue({
   store
 }).$mount('#app');
 
-
+/*
 // code to add fake posts begins
 let i = 0;
 function createPost() {
@@ -409,21 +502,4 @@ function createNestedComment(comment, times) {
   }
 }
 // code to add fake posts ends
-
-// agora send and reply handling code
-let callbackMap = {};
-function sendAgoraRequest({ command, arguments}, callback) {
-  this.agoraRequestId = ++this.agoraRequestId || 1;
-  callbackMap[this.agoraRequestId] = callback;
-  ipcRenderer.send('agora-request', {
-    id: this.agoraRequestId,
-    req: {
-      command: command,
-      arguments: arguments
-    }
-  });
-}
-
-ipcRenderer.on('agora-reply', function (event, {id, result}) {
-  callbackMap[id](result);
-})
+*/

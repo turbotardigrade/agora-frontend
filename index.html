@@ -19,6 +19,19 @@
   </template>
   <template id="home-list">
     <div>
+      <button class="btn btn-default" v-on:click="addpost = !addpost">Add Post</button><button class="btn btn-default" v-on:click="refreshPosts()">Refresh</button>
+      <div class="panel panel-default" style="padding: 10px" v-show="addpost">
+        <input type="text" class="form-control" placeholder="Title" v-model="postToSubmit.title">
+        <textarea class="form-control" rows="3" placeholder="Post Content" v-model="postToSubmit.content"></textarea>
+        <div class="btn-group btn-group-justified" role="group">
+          <div class="btn-group" role="group">
+            <button class="btn btn-default" v-on:click="submitPost()">Submit</button>
+          </div>
+          <div class="btn-group" role="group">
+            <button class="btn btn-danger" v-on:click="addpost = false">Cancel</button>
+          </div>
+        </div>
+      </div>
       <transition-group name="list" tag="div">
         <post-list-component v-for="post in posts" :post="post" :key="post.Hash"></post-list-component>
       </transition-group>
@@ -37,7 +50,7 @@
             <td>
               <div class="title">{{ post.Title }}</div>
               <div class="author"><span>by {{ post.Alias }} on {{ new Date(post.Timestamp).toString() }}</span></div>
-              <div class="post-buttons"><router-link class="comments clickable" :to="{ name: 'comments', params: { postHash: post.Hash }}"tag="span">{{ post.ChildComments ? Object.keys(post.ChildComments).length : 0 }} comments</router-link>  | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.Flag }">{{ post.Flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.Hash }}</span></div>
+              <div class="post-buttons"><router-link class="comments clickable" :to="{ name: 'comments', params: { postHash: post.Hash }}"tag="span">Comments</router-link>  | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.Flag }">{{ post.Flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.Hash ? post.Hash.substring(0, 20) : '' }}</span></div>
             </td>
           </tr>
         </tbody>
@@ -45,9 +58,7 @@
     </div>
   </template>
   <template id="comment-list" :posts="posts" :postHash="postHash">
-    <div>
-      <comment-list-post :post="postHash != null ? posts[postHash] : {}"></comment-list-post>
-    </div>
+    <comment-list-post :post="postHash != null ? posts[postHash] : {}"></comment-list-post>
   </template>
   <template id="comment-list-post-item">
     <div>
@@ -66,13 +77,18 @@
                 <div class="content panel panel-default">
                   {{ post.Content }}
                 </div>
-                <div class="post-buttons">{{ post.ChildComments ? Object.keys(post.ChildComments).length : 0 }} comments | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.Flag }">{{ post.Flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.Hash }}</span></div>
+                <div class="post-buttons">{{ post.ChildComments ? Object.keys(post.ChildComments).length : 0 }} comments | <span class="reply-button clickable" v-on:click="showReplyBox = !showReplyBox">Reply</span> | <span class="flag-button clickable" v-on:click="toggleFlag()" v-bind:class="{ clicked: post.Flag }">{{ post.Flag ? "Flagged" : "Flag" }}</span> | <span>Post ID: {{ post.Hash ? post.Hash.substring(0, 20) : '' }}</span></div>
               </td>
             </tr>
           </tbody>
         </table>
+        <div class="panel panel-default" v-show="showReplyBox" style="margin: 10px; padding: 10px;">
+          <textarea v-model="comment.content" class="form-control" rows="3" placeholder="Comment content">
+          </textarea>
+          <button class="btn btn-default" v-on:click="submitComment()">Submit</button>
+        </div>
       </div>
-      <comment-list-comment v-for="comment in post.ChildComments" :comment="comment">
+      <comment-list-comment v-for="comment in post.ChildComments" :comment="comment" :posthash="post.Hash">
     </div>
   </template>
   <template id="comment-list-comment-item">
@@ -85,12 +101,17 @@
               <div class="content">
                 {{ comment.Content }}
               </div>
-              <div class="comment-buttons"><span class="flag-button clickable" v-on:click="toggleCommentFlag()" v-bind:class="{ clicked: comment.Flag }">{{ comment.Flag ? "Flagged" : "Flag" }}</span> | <span>Comment ID: {{ comment.Hash }}</span></div>
+              <div class="comment-buttons"><span class="reply-button clickable" v-on:click="showReplyBox = !showReplyBox">Reply</span> | <span class="flag-button clickable" v-on:click="toggleCommentFlag()" v-bind:class="{ clicked: comment.Flag }">{{ comment.Flag ? "Flagged" : "Flag" }}</span> | <span>Comment ID: {{ comment.Hash ? comment.Hash.substring(0, 20) : '' }}</span></div>
             </td>
           </tr>
         </tbody>
       </table>
-      <comment-list-comment v-for="ChildComment in comment.ChildComments" :comment="ChildComment">
+      <div class="panel panel-default" v-show="showReplyBox" style="margin: 10px; padding: 10px;">
+        <textarea v-model="content" class="form-control" rows="3" placeholder="Comment content">
+        </textarea>
+        <button class="btn btn-default" v-on:click="submitComment()">Submit</button>
+      </div>
+      <comment-list-comment v-for="ChildComment in comment.ChildComments" :comment="ChildComment" :posthash="posthash">
     </div>
   </template>
   <!-- END HOME PAGE TEMPLATES -->
