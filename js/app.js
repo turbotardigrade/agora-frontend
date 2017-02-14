@@ -24,7 +24,7 @@ class Content {
   constructor({ Alias, Content, Timestamp, Hash, Key, UserData }) {
     this.Alias = Alias;
     this.Content = Content;
-    this.Timestamp = Timestamp;
+    this.Timestamp = Timestamp * 1000;
     this.Hash = Hash;
     this.Key = Key;
     this.ChildComments = {};
@@ -92,26 +92,20 @@ const store = new Vuex.Store({
     // synchronously add comment to the commentmap and updates parent pointers
     // if it is a new comment
     addOrUpdateComment(state, comment) {
-
       if ((comment.Parent === comment.Post &&
             state.postMap[comment.Parent] == null) ||
           (comment.Parent !== comment.Post &&
             state.commentMap[comment.Parent] == null)) {
-        console.log("Current comment map: ", state.commentMap);
-        console.log("Comment actual parent: ", comment.Parent);
-        console.log("Comment parent: ", state.commentMap[comment.Parent])
         // parent is not currently inserted yet, put into buffer
         state.commentBuffer.push(comment);
         return;
       }
-      console.log('hello! fom add or update');
       // comment already exists, no need to set child pointers of parents
       if (state.commentMap[comment.Hash] != null) {
         state.commentMap[comment.Hash].Score = comment.Score;
         state.commentMap[comment.Hash].Flag = comment.Flag;
         return;
       }
-
       if (comment.Parent === comment.Post) {
         if (!state.postMap[comment.Parent].ChildComments) {
           Vue.set(state.postMap[comment.Parent], ChildComments, {});
@@ -172,19 +166,16 @@ const store = new Vuex.Store({
       }
     },
     addComment({ commit, state }, argument) {
-      console.log('hello!');
       sendAgoraRequest({
         command: 'postComment',
         arguments: argument
       }, function(result) {
-        console.log('hello 2!: ', result);
         sendAgoraRequest({
           command: 'getComment',
           arguments: {
             hash: result.hash
           }
         }, function(res) {
-          console.log('hello 3!: ', res);
           commit('addOrUpdateComment', new Comment(res));
         })
       });
@@ -350,8 +341,6 @@ Vue.component('comment-list-comment', {
         post: this.posthash,
         parent: this.comment.Hash
       }
-      console.log("tempComment: ", tempComment)
-
       this.$store.dispatch('addComment', tempComment);
       this.content = '';
       this.showReplyBox = false;
