@@ -2,14 +2,14 @@ const { ipcRenderer } = require('electron');
 
 // agora send and reply handling code
 let callbackMap = {};
-function sendAgoraRequest({ command, arguments}, callback) {
+function sendAgoraRequest(commandObj, callback) {
   this.agoraRequestId = ++this.agoraRequestId || 1;
   callbackMap[this.agoraRequestId] = callback;
   ipcRenderer.send('agora-request', {
     id: this.agoraRequestId,
     req: {
-      command: command,
-      arguments: arguments
+      command: commandObj.command,
+      arguments: commandObj.arguments
     }
   });
 }
@@ -171,11 +171,11 @@ const store = new Vuex.Store({
         commit('addOrUpdateComment', k);
       }
     },
-    addComment({ commit, state }, arguments) {
+    addComment({ commit, state }, argument) {
       console.log('hello!');
       sendAgoraRequest({
         command: 'postComment',
-        arguments: arguments
+        arguments: argument
       }, function(result) {
         console.log('hello 2!: ', result);
         sendAgoraRequest({
@@ -189,10 +189,10 @@ const store = new Vuex.Store({
         })
       });
     },
-    addPost({ commit, state }, arguments) {
+    addPost({ commit, state }, argument) {
       sendAgoraRequest({
         command: 'postPost',
-        arguments: arguments
+        arguments: argument
       }, function(result) {
 
         sendAgoraRequest({

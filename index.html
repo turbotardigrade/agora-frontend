@@ -19,7 +19,7 @@
   </template>
   <template id="home-list">
     <div>
-      <button class="btn btn-default" v-on:click="addpost = !addpost">Add Post</button><button class="btn btn-default" v-on:click="refreshPosts()">Refresh</button>
+      <button class="btn btn-default" style="margin-bottom: 10px;" v-on:click="addpost = !addpost">Add Post</button><button class="btn btn-default" style="margin-bottom: 10px;" v-on:click="refreshPosts()">Refresh</button>
       <div class="panel panel-default" style="padding: 10px" v-show="addpost">
         <input type="text" class="form-control" placeholder="Title" v-model="postToSubmit.title">
         <textarea class="form-control" rows="3" placeholder="Post Content" v-model="postToSubmit.content"></textarea>
