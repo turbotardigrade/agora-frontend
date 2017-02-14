@@ -4,6 +4,8 @@
  *              sends/receives requests.
  */
 
+'use strict';
+
 const child_process = require('child_process');
 const stream = require('stream');
 const readline = require('readline');

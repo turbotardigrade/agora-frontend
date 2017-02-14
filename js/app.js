@@ -1,12 +1,15 @@
+'use strict';
+
 const { ipcRenderer } = require('electron');
 
 // agora send and reply handling code
 let callbackMap = {};
+let agoraRequestId = 0;
 function sendAgoraRequest(commandObj, callback) {
-  this.agoraRequestId = ++this.agoraRequestId || 1;
-  callbackMap[this.agoraRequestId] = callback;
+  ++agoraRequestId;
+  callbackMap[agoraRequestId] = callback;
   ipcRenderer.send('agora-request', {
-    id: this.agoraRequestId,
+    id: agoraRequestId,
     req: {
       command: commandObj.command,
       arguments: commandObj.arguments
@@ -231,6 +234,9 @@ const PostPage = Vue.extend({
       return Object.keys(obj).map(function(key) {
         return obj[key];
       }).sort((a, b) => {
+        if (b.Score - a.Score === 0) {
+          return b.Timestamp > a.Timestamp;
+        }
         return b.Score - a.Score;
       });
     }
