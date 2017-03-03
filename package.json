@@ -4,7 +4,7 @@
   "description": "Frontend of Agora",
   "main": "main.js",
   "scripts": {
-    "build": "cd agora && go get && go build",
+    "build": "./pull.sh",
     "start": "electron ."
   },
   "repository": "https://github.com/turbotardigrade/agora-frontend",

@@ -10,7 +10,7 @@ const child_process = require('child_process');
 const stream = require('stream');
 const readline = require('readline');
 
-var agora_process = child_process.spawn('./agora/agora', ['--silent']);
+var agora_process = child_process.spawn('./peerbackend/peerbackend', ['--silent']);
 
 // readline interface for easy input/output using question and answer
 var rl = readline.createInterface({
