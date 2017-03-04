@@ -87,10 +87,33 @@ const store = new Vuex.Store({
     },
     toggleFlag(state, postHash) {
       state.postMap[postHash].Flag = !state.postMap[postHash].Flag;
-      // send update to agora
+
+      sendAgoraRequest({
+	command: "flag",
+	arguments: {
+	  hash: postHash,
+	  isFlagged: state.postMap[postHash].Flag
+	}
+      }, function(result) {
+        if (!result) {
+          return;
+        }
+      });
     },
     toggleCommentFlag(state, commentHash) {
       state.commentMap[commentHash].Flag = !state.commentMap[commentHash].Flag;
+
+      sendAgoraRequest({
+	command: "flag",
+	arguments: {
+	  hash: commentHash,
+	  isFlagged: state.commentMap[commentHash].Flag
+	}
+      }, function(result) {
+        if (!result) {
+          return;
+        }
+      });
     },
     // synchronously add comment to the commentmap and updates parent pointers
     // if it is a new comment
