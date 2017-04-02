@@ -87,30 +87,28 @@ const store = new Vuex.Store({
     },
     toggleFlag(state, postHash) {
       state.postMap[postHash].Flag = !state.postMap[postHash].Flag;
-
       sendAgoraRequest({
-	command: "flag",
-	arguments: {
-	  hash: postHash,
-	  isFlagged: state.postMap[postHash].Flag
-	}
+        command: "flag",
+        arguments: {
+          hash: postHash,
+          isFlagged: state.postMap[postHash].Flag
+        }
       }, function(result) {
-        if (!result) {
+        if (!result.error) {
           return;
         }
       });
     },
     toggleCommentFlag(state, commentHash) {
       state.commentMap[commentHash].Flag = !state.commentMap[commentHash].Flag;
-
       sendAgoraRequest({
-	command: "flag",
-	arguments: {
-	  hash: commentHash,
-	  isFlagged: state.commentMap[commentHash].Flag
-	}
+        command: "flag",
+        arguments: {
+          hash: commentHash,
+          isFlagged: state.commentMap[commentHash].Flag
+        }
       }, function(result) {
-        if (!result) {
+        if (!result.error) {
           return;
         }
       });
@@ -155,7 +153,7 @@ const store = new Vuex.Store({
     // repropagates the post map with data from agora
     refreshPosts({ commit }) {
       sendAgoraRequest({ command: "getPosts" }, function(result) {
-        if (!result) {
+        if (!result.error) {
           return;
         }
         for (let i = 0; i < result.length; ++i) {
@@ -171,7 +169,7 @@ const store = new Vuex.Store({
           hash: postHash
         }
       }, function(result) {
-        if (!result) {
+        if (!result.error) {
           return;
         }
         for (let i = 0; i < result.length; ++i) {
@@ -211,7 +209,6 @@ const store = new Vuex.Store({
         command: 'postPost',
         arguments: argument
       }, function(result) {
-
         sendAgoraRequest({
           command: 'getPost',
           arguments: {
@@ -220,6 +217,34 @@ const store = new Vuex.Store({
         }, function(res) {
           commit('updatePostMap', new Post(res));
         })
+      });
+    },
+    upvote({ commit, state }, postHash) {
+      sendAgoraRequest({
+        command: "upvote",
+        arguments: {
+          hash: postHash
+        }
+      }, function(result) {
+        console.log("upvote! :", result);
+        if (!result.error) {
+          return;
+        }
+        commit('incrementScore', postHash);
+      });
+    },
+    downvote({ commit, state }, postHash) {
+      sendAgoraRequest({
+        command: "downvote",
+        arguments: {
+          hash: postHash
+        }
+      }, function(result) {
+        console.log("downvote! :", result);
+        if (!result.error) {
+          return;
+        }
+        commit('decrementScore', postHash);
       });
     }
   },
@@ -290,10 +315,10 @@ Vue.component('post-list-component', {
   template: '#post-list-item',
   methods: {
     increment() {
-      this.$store.commit('incrementScore', this.post.Hash);
+      this.$store.dispatch('upvote', this.post.Hash);
     },
     decrement() {
-      this.$store.commit('decrementScore', this.post.Hash);
+      this.$store.dispatch('downvote', this.post.Hash);
     },
     toggleFlag() {
       this.$store.commit('toggleFlag', this.post.Hash);
@@ -330,10 +355,10 @@ Vue.component('comment-list-post', {
   },
   methods: {
     increment() {
-      this.$store.commit('incrementScore', this.post.Hash);
+      this.$store.dispatch('upvote', this.post.Hash);
     },
     decrement() {
-      this.$store.commit('decrementScore', this.post.Hash);
+      this.$store.dispatch('downvote', this.post.Hash);
     },
     toggleFlag() {
       this.$store.commit('toggleFlag', this.post.Hash);

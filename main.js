@@ -13,7 +13,7 @@ let mainWindow;
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600});
+  mainWindow = new BrowserWindow({width: 800, height: 600, show: false});
 
   // and load the index.html of the app.
   mainWindow.loadURL(url.format({
@@ -21,6 +21,10 @@ function createWindow () {
     protocol: 'file:',
     slashes: true
   }));
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  })
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -39,23 +43,26 @@ app.on('ready', () => {
     width: 500,
     height: 375,
     frame: false,
-    show: false
+    show: false,
+    fullscreen: false,
+    fullscreenable: false,
+    transparent: true
   });
   splashScreen.loadURL(url.format({
     pathname: path.join(__dirname, 'splash.html'),
     protocol: 'file:',
     slashes: true
   }));
-  setTimeout(() => {
+  splashScreen.once('ready-to-show', () => {
     splashScreen.show();
     setTimeout(() => {
-      splashScreen.close();
+      splashScreen.destroy();
       splashScreen = null;
       setTimeout(() => {
         createWindow();
       }, 500);
     }, 3000);
-  }, 500);
+  });
 });
 
 // Quit when all windows are closed.

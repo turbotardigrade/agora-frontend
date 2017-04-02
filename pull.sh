@@ -41,7 +41,7 @@ echo "------------------------------------------------------------"
 mv $GOTMP $WS
 cd $WS/peerbackend
 
-if go build ; then
+if ./travis_install.sh && go build ; then
     echo "Build succeeded"
 else
     echo "Build failed"
