@@ -7,13 +7,17 @@
 'use strict';
 
 const child_process = require('child_process');
+const process = require('process');
 const stream = require('stream');
 const readline = require('readline');
+const path = require('path');
 
-var agora_process = child_process.spawn('./peerbackend/peerbackend', ['--silent']);
+// change path so that commands are always relative to the this file's directory
+process.chdir(__dirname);
+let agora_process = child_process.spawn('../peerbackend/peerbackend', ['--silent']);
 
 // readline interface for easy input/output using question and answer
-var rl = readline.createInterface({
+let rl = readline.createInterface({
   input: agora_process.stdout,
   output: agora_process.stdin
 });
@@ -32,7 +36,7 @@ function nodeEnd() {
       } else {
         agora_process.kill();
       }
-    })
+    })()
   } else {
     agora_process.kill();
   }
@@ -40,12 +44,15 @@ function nodeEnd() {
 process.on('exit', nodeEnd);
 agora_process.on('exit', agoraCleanup);
 function agoraCleanup() {
+  console.log("Peerbackend: Program terminated");
   if (!isTerminating) {
-    agora_process = child_process.spawn('./agora/agora', ['--silent']);
+    agora_process = child_process.spawn('../peerbackend/peerbackend', ['--silent']);
     rl = readline.createInterface({
       input: agora_process.stdout,
       output: agora_process.stdin
     })
+    agora_process.removeListener('exit', agoraCleanup);
+    process.removeListener('exit', nodeEnd);
     agora_process.on('exit', agoraCleanup);
     process.on('exit', nodeEnd);
   }
@@ -94,7 +101,9 @@ function processNextRequest(chained) {
       if (requests.length > 0) {
         // if there are requests remaining
         // keep the current processing chain going
-        processNextRequest(true);
+        process.nextTick(function() {
+          processNextRequest(true)
+        });
       } else {
         // else terminate the processing
         processing = false;
@@ -123,5 +132,6 @@ module.exports = {
       callback
     });
     processNextRequest();
-  }
-}
+  },
+  quit: nodeEnd
+};
